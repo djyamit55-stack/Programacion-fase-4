@@ -3,9 +3,11 @@ from tkinter import messagebox, ttk # Importa diálogos de alerta y widgets mode
 from abc import ABC, abstractmethod # Importa herramientas para clases abstractas
 
 
-
 # --- EXCEPCIONES PERSONALIZADAS ---
 class GestionError(Exception): """Excepción base para errores generales del sistema.""" 
+class DatosInvalidosError(GestionError): """Excepción para datos de entrada erróneos o faltantes.""" 
+class ServicioNoSeleccionadoError(GestionError): """1. Excepción específica cuando no se elige un servicio válido.""" 
+class ServicioNoDisponible(GestionError): """1. Excepción cuando el servicio no esta disponible.""" 
 
 # --- CLASES BASE Y MODELOS ---
 
@@ -22,6 +24,10 @@ class Cliente(EntidadSistema):
         self.__nombre = self.__validar_nombre(nombre) # Valida el nombre al asignar
         self.__correo = correo # Correo electrónico privado
 
+    def __validar_nombre(self, nombre): # Método privado de validación
+        if len(nombre.strip()) < 3: # Comprueba que no esté vacío o sea muy corto
+            raise DatosInvalidosError("El nombre del cliente debe tener al menos 3 caracteres.")
+        return nombre
 
     def obtener_detalles(self): # Implementación del detalle del cliente
         return f"Cliente: {self.__nombre} (ID: {self.__id})"
@@ -98,7 +104,7 @@ class VentanaSoftwareFJ:
         frame_entrada = tk.Frame(self.master) # Crea un marco para organizar elementos
         frame_entrada.pack(pady=20, fill="x", padx=15) # Empaqueta el marco arriba
         
-        # CONTENEDOR SUPERIOR
+        # Contenedor superior
         frame_superior = tk.Frame(frame_entrada, bg="grey") 
         frame_superior.pack(side="top", fill="x", expand=True)
         
@@ -114,7 +120,7 @@ class VentanaSoftwareFJ:
         self.cor_cliente = tk.Entry(frame_superior) # Campo de texto para nombre
         self.cor_cliente.grid(row=0, column=5, padx=5)
        
-        # --- CONTENEDOR INFERIOR ---
+        # --- CONTENEDOR HORIZONTAL PARA ENTRADA ---
         frame_inferior = tk.Frame(frame_entrada, bg="grey") 
         frame_inferior.pack(side="top", fill="x", expand=True)
 
@@ -134,8 +140,7 @@ class VentanaSoftwareFJ:
         tk.Label(self.master, text="Lista de Servicios Reservados:").pack(anchor="w", padx=15) # Título del historial
         self.txt_display = tk.Listbox(self.master, height=12) # Caja de texto multilínea
         self.txt_display.pack(fill="both", padx=15, pady=5, expand=True)
-        
-            
+                
     def ejecutar_registro(self):
         """Método principal con manejo robusto de excepciones."""
         try:
@@ -148,19 +153,19 @@ class VentanaSoftwareFJ:
 
             # 1. VALIDACIÓN DE SELECCIÓN DE SERVICIO
             if not nombre: # Si la cantidad está vacía
-               pass
+                raise DatosInvalidosError("Debe ingresar una cantidad válida.")
             
             if not cedula: # Si la cantidad está vacía
-                pass
+                raise DatosInvalidosError("Debe ingresar una cantidad válida.")
             
             if not correo: # Si la cantidad está vacía
-                pass
+                raise DatosInvalidosError("Debe ingresar una cantidad válida.")
              
             if not tipo: # Si el combo está vacío
-                pass
+                raise ServicioNoSeleccionadoError("Debe seleccionar un tipo de servicio de la lista.")
 
             if not valor_cant: # Si la cantidad está vacía
-                pass
+                raise DatosInvalidosError("Debe ingresar una cantidad válida.")
 
             cantidad = int(valor_cant) # Intento de conversión a entero
 
@@ -180,7 +185,7 @@ class VentanaSoftwareFJ:
 
             # Procesamiento de la reserva
             if self.tamaño[self.var] == 0:
-                pass
+                raise ServicioNoDisponible("Servicio no disponible.")
             else:
                 reserva_obj = Reserva(cliente_obj, serv_obj)
                 mensaje_exito = reserva_obj.procesar()
@@ -190,13 +195,16 @@ class VentanaSoftwareFJ:
             # Salida de información exitosa
             self.txt_display.insert(tk.END, f"{mensaje_exito} | {serv_obj.obtener_detalles()} | Total: ${total_cobro:,.0f}\n")
 
-
+        except ServicioNoSeleccionadoError as sne: # Captura falta de selección
+            messagebox.showwarning("Campo Faltante", str(sne))
         except ValueError: # Captura error de letras en campos numéricos
             messagebox.showerror("Error de Formato", "La cantidad debe ser un número entero.")
         except GestionError as ge: # Captura errores lógicos definidos por nosotros
             messagebox.showerror("Error de Negocio", str(ge))
+        except ServicioNoDisponible as gi: # Captura errores lógicos definidos por nosotros
+            messagebox.showerror("el servicio no se encuentra disponible", str(gi))            
         except Exception as e: # Captura cualquier fallo inesperado del sistema
-            messagebox.showerror("Fallo Crítico", "Ocurrió un error inesperado. Revise el archivo de log.")
+            messagebox.showerror("Fallo Crítico", "Ocurrió un error inesperado. ")            
         else: # Si todo fue bien, limpia los campos
             self.ent_cliente.delete(0, tk.END)
             self.ent_cant.delete(0, tk.END)
