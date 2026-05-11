@@ -1,7 +1,12 @@
 import tkinter as tk # Importa la biblioteca base para la interfaz gráfica
 from tkinter import messagebox, ttk # Importa diálogos de alerta y widgets modernos
 from abc import ABC, abstractmethod # Importa herramientas para clases abstractas
+import logging # Importa el sistema de registro de eventos y errores
 
+# --- CONFIGURACIÓN DE LOGS ---
+LOG_FILE = "software_fj_debug.log" # Define el nombre del archivo donde se guardarán los errores
+logging.basicConfig(filename=LOG_FILE, level=logging.ERROR, 
+                    format="%(asctime)s - %(levelname)s - %(message)s") # Configura el formato del log
 
 # --- EXCEPCIONES PERSONALIZADAS ---
 class GestionError(Exception): """Excepción base para errores generales del sistema.""" 
@@ -86,6 +91,7 @@ class Reserva:
             self.confirmada = True # Cambia estado a éxito
             return f"Reserva procesada para: {self.cliente.obtener_detalles()}"
         except Exception as e:
+            logging.error(f"Fallo en procesamiento de reserva: {e}") # Registra el error
             raise # Lanza el error para ser capturado en la UI
 
 # --- INTERFAZ GRÁFICA ---
@@ -197,14 +203,19 @@ class VentanaSoftwareFJ:
 
         except ServicioNoSeleccionadoError as sne: # Captura falta de selección
             messagebox.showwarning("Campo Faltante", str(sne))
+            logging.warning(f"Intento de registro sin servicio: {sne}")
         except ValueError: # Captura error de letras en campos numéricos
             messagebox.showerror("Error de Formato", "La cantidad debe ser un número entero.")
+            logging.error("Error de conversión: El usuario ingresó texto en cantidad.")
         except GestionError as ge: # Captura errores lógicos definidos por nosotros
             messagebox.showerror("Error de Negocio", str(ge))
+            logging.error(f"Error controlado: {ge}")
         except ServicioNoDisponible as gi: # Captura errores lógicos definidos por nosotros
-            messagebox.showerror("el servicio no se encuentra disponible", str(gi))            
+            messagebox.showerror("el servicio no se encuentra disponible", str(gi))
+            logging.error(f"Servicio no esta disponible en el momento: {gi}")
         except Exception as e: # Captura cualquier fallo inesperado del sistema
-            messagebox.showerror("Fallo Crítico", "Ocurrió un error inesperado. ")            
+            messagebox.showerror("Fallo Crítico", "Ocurrió un error inesperado. Revise el archivo de log.")
+            logging.critical(f"Error sistémico: {e}", exc_info=True)
         else: # Si todo fue bien, limpia los campos
             self.ent_cliente.delete(0, tk.END)
             self.ent_cant.delete(0, tk.END)
