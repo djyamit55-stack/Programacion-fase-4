@@ -2,6 +2,8 @@ import tkinter as tk # Importa la biblioteca base para la interfaz gráfica
 from tkinter import messagebox, ttk # Importa diálogos de alerta y widgets modernos
 from abc import ABC, abstractmethod # Importa herramientas para clases abstractas
 import logging # Importa el sistema de registro de eventos y errores
+from datetime import datetime
+
 
 
 # --- CONFIGURACIÓN DE LOGS ---
@@ -92,7 +94,11 @@ class Reserva:
             return f"Reserva procesada para: {self.cliente.obtener_detalles()}"
         except Exception as e:
             logging.error(f"Fallo en procesamiento de reserva: {e}") # Registra el error
-            raise # Lanza el error para ser capturado en la UI
+            raise GestionError( "Error Interno al procesar la reserva") from e
+          
+    def cancelar(self):  # Método para cancelar reservas
+        self.confirmada = False
+        return "Reserva cancelada correctamente."
 
 # --- INTERFAZ GRÁFICA ---
 
@@ -107,13 +113,25 @@ class VentanaSoftwareFJ:
     def __init__(self, master):
         self.master = master # Referencia a la ventana principal
         self.master.title("Software FJ - Gestión de Reservas") # Título de la ventana
-        self.master.geometry("750x400") # Dimensiones de la ventana
+        self.master.geometry("850x500") # Dimensiones de la ventana
+        self.master.configure(bg="#ecf0f1") 
+        titulo = tk.Label(
+        self.master,
+        text="SOFTWARE FJ - GESTIÓN DE RESERVAS",
+        font=("Arial", 18, "bold"),
+        bg="#2c3e50",
+        fg="white",
+        pady=15
+        )
+        titulo.pack(fill="x")
+        self.lista_reservas = [] # Lista interna para almacenar reservas
+        self.contador_reservas = 1 #contador automatico de reservas
         
         frame_entrada = tk.Frame(self.master) # Crea un marco para organizar elementos
         frame_entrada.pack(pady=20, fill="x", padx=15) # Empaqueta el marco arriba
         
         # Contenedor superior
-        frame_superior = tk.Frame(frame_entrada, bg="grey") 
+        frame_superior = tk.Frame(frame_entrada, bg="#dfe6e9") 
         frame_superior.pack(side="top", fill="x", expand=True)
         
         tk.Label(frame_superior, text="Nombre Cliente:").grid(row=0, column=0, padx=5) # Etiqueta cliente
@@ -129,7 +147,7 @@ class VentanaSoftwareFJ:
         self.cor_cliente.grid(row=0, column=5, padx=5)
        
         # --- CONTENEDOR HORIZONTAL PARA ENTRADA ---
-        frame_inferior = tk.Frame(frame_entrada, bg="grey") 
+        frame_inferior = tk.Frame(frame_entrada, bg="#dfe6e9") 
         frame_inferior.pack(side="top", fill="x", expand=True)
 
         tk.Label(frame_inferior, text="Servicio:").grid(row=0, column=2, padx=5) # Etiqueta servicio
@@ -240,7 +258,11 @@ class VentanaSoftwareFJ:
                     raise ServicioNoDisponible("Servicio no disponible.")
 
             reserva_obj = Reserva(cliente_obj, serv_obj)
+            self.lista_reservas.append(reserva_obj) # Guardamos la reserva en la memoria 
             mensaje_exito = reserva_obj.procesar()
+            codigo_reserva = f"RES-{self.contador_reservas:03}" #Codigo automatico para cada reserva
+            self.contador_reservas += 1 #aumenta el contador
+            fecha_actual = datetime.now().strftime("%d/%m/%Y %H:%M") #fecha y hora del sistema
             print("3")
             if self.var == 0:
                 self.numeros_de_salas = self.numeros_de_salas - 1
@@ -256,7 +278,14 @@ class VentanaSoftwareFJ:
             
             self.s = "salas disponibles: " + str(self.numeros_de_salas) + "  equipos disponibles: " + str(self.numero_de_equipos) + "  asesores disponibles: " + str(self.numero_de_asesores)
             self.label.config(text=str(self.s))
-            self.txt_display.insert(tk.END, f"{mensaje_exito} | {serv_obj.obtener_detalles()} | Total: ${total_cobro:,.0f}\n")
+            self.txt_display.insert(
+    tk.END,
+    f"{codigo_reserva} | "
+    f"{fecha_actual} | "
+    f"{mensaje_exito} | "
+    f"{serv_obj.obtener_detalles()} | "
+    f"Total: ${total_cobro:,.0f}"
+)
 
         except DatosInvalidosErrorNo as se: # Captura falta de selección
             messagebox.showwarning("el nombre debe tener mas de 4 caracteres", str(se))
@@ -286,14 +315,18 @@ class VentanaSoftwareFJ:
             messagebox.showerror("Fallo Crítico", "Ocurrió un error inesperado. Revise el archivo de log.")
             logging.critical(f"Error sistémico: {e}", exc_info=True)
         else: # Si todo fue bien, limpia los campos
-            self.ent_cliente.delete(0, tk.END)
-            self.ent_cant.delete(0, tk.END)
-            self.combo_tipo.set('')
+           self.nom_cliente.delete(0, tk.END)
+           self.ced_cliente.delete(0, tk.END)
+           self.cor_cliente.delete(0, tk.END)
+           self.ent_cant.delete(0, tk.END)
+           self.combo_tipo.set('')
         finally: # Siempre se ejecuta para asegurar cierre de procesos
             print("Intento de registro finalizado.")
 
 # --- INICIO DE LA APLICACIÓN ---
 if __name__ == "__main__":
-    root = tk.Tk() # Inicializa el motor de Tkinter
+    root = tk.Tk()  # Inicializa el motor de Tkinter
+    app = VentanaSoftwareFJ(root)  # Crea la ventana del sistema
+    root.mainloop()  # Mantiene la ventana abierta
     app = VentanaSoftwareFJ(root) # Crea la instancia de nuestra ventana
     root.mainloop() # Mantiene la ventana abierta y escuchando eventos
