@@ -113,7 +113,7 @@ class VentanaSoftwareFJ:
     def __init__(self, master):
         self.master = master # Referencia a la ventana principal
         self.master.title("Software FJ - Gestión de Reservas") # Título de la ventana
-        self.master.geometry("850x500") # Dimensiones de la ventana
+        self.master.geometry("850x600") # Dimensiones de la ventana
         self.master.configure(bg="#ecf0f1") 
         titulo = tk.Label(
         self.master,
